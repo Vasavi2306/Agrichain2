@@ -1,21 +1,27 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Order = require("../models/Order");
-
-const {
-    recordTransaction
-} = require("../blockchain/blockchainService");
+const { recordTransaction } = require("../blockchain/blockchainService");
 
 const router = express.Router();
 
+// =====================================
+// TEST ORDER ROUTE
+// =====================================
+
+router.get("/test", (req, res) => {
+    res.json({
+        message: "Order routes are working!"
+    });
+});
+
 
 // =====================================
-// PLACE NEW ORDER
+// PLACE ORDER
 // =====================================
 
 router.post("/place", async (req, res) => {
-
     try {
-
         const {
             buyerId,
             buyerName,
@@ -23,150 +29,73 @@ router.post("/place", async (req, res) => {
             totalAmount
         } = req.body;
 
+        if (!buyerId || !buyerName || !products || !products.length || totalAmount == null) {
+            return res.status(400).json({
+                message: "Please provide all required order details."
+            });
+        }
 
-        // Create order
+        if (!mongoose.Types.ObjectId.isValid(buyerId)) {
+            return res.status(400).json({
+                message: "Invalid buyer ID."
+            });
+        }
 
         const order = new Order({
-
-            buyerId: buyerId,
-
-            buyerName: buyerName,
-
-            products: products,
-
-            totalAmount: totalAmount,
-
+            buyerId,
+            buyerName,
+            products,
+            totalAmount,
             status: "Pending"
-
         });
-
-
-        // Save order to MongoDB
 
         await order.save();
 
-        console.log(
-            "Order saved to MongoDB:",
-            order._id.toString()
+        const blockchainOrderId = Number(
+            parseInt(order._id.toString().slice(-8), 16)
         );
-
-
-        // Store blockchain transaction details
 
         const blockchainTransactions = [];
 
-
-        // =====================================
-        // RECORD ORDER ON BLOCKCHAIN
-        // =====================================
-
         for (const product of products) {
-
             try {
-
-                const blockchainOrderId = Number(
-                    parseInt(
-                        order._id.toString().slice(-8),
-                        16
-                    )
-                );
-
-
                 const txHash = await recordTransaction(
-
                     blockchainOrderId,
-
                     product.productName,
-
                     product.farmerName,
-
                     buyerName,
-
                     Number(product.quantity),
-
                     Number(product.price)
-
                 );
-
-
-                console.log(
-                    "Blockchain transaction successful:",
-                    txHash
-                );
-
-
-                // Save blockchain transaction hash
 
                 blockchainTransactions.push({
-
-                    productName:
-                        product.productName,
-
-                    transactionHash:
-                        txHash
-
+                    productName: product.productName,
+                    transactionHash: txHash
                 });
-
-
             } catch (blockchainError) {
-
                 console.error(
-                    "Blockchain recording failed:",
-                    blockchainError.message
+                    "Blockchain transaction error:",
+                    blockchainError
                 );
-
             }
-
         }
 
-
-        // =====================================
-        // SAVE BLOCKCHAIN DETAILS TO MONGODB
-        // =====================================
-
-        order.blockchainTransactions =
-            blockchainTransactions;
-
-
+        order.blockchainTransactions = blockchainTransactions;
         await order.save();
 
-
-        console.log(
-            "Blockchain transaction details saved to MongoDB."
-        );
-
-
-        // =====================================
-        // SEND RESPONSE
-        // =====================================
-
         res.status(201).json({
-
-            message:
-                "Order placed successfully!",
-
-            order: order
-
+            message: "Order placed successfully!",
+            order
         });
-
 
     } catch (error) {
-
-        console.error(
-            "Place Order Error:",
-            error
-        );
-
+        console.error("Place Order Error:", error);
 
         res.status(500).json({
-
-            message:
-                "Unable to place order."
-
+            message: "Unable to place order.",
+            error: error.message
         });
-
     }
-
 });
 
 
@@ -175,109 +104,120 @@ router.post("/place", async (req, res) => {
 // =====================================
 
 router.get("/buyer/:buyerId", async (req, res) => {
-
     try {
-
         const { buyerId } = req.params;
 
+        if (!mongoose.Types.ObjectId.isValid(buyerId)) {
+            return res.status(400).json({
+                message: "Invalid buyer ID."
+            });
+        }
 
         const orders = await Order.find({
-
-            buyerId: buyerId
-
+            buyerId
         }).sort({
-
             createdAt: -1
-
         });
-
 
         res.status(200).json({
-
-            orders: orders
-
+            count: orders.length,
+            orders
         });
-
 
     } catch (error) {
-
-        console.error(
-            "Get Buyer Orders Error:",
-            error
-        );
-
+        console.error("Get Buyer Orders Error:", error);
 
         res.status(500).json({
-
-            message:
-                "Unable to fetch orders."
-
+            message: "Unable to fetch buyer orders."
         });
-
     }
-
 });
 
 
 // =====================================
-// CONFIRM ORDER
+// GET FARMER ORDERS
 // =====================================
 
-router.put("/confirm/:orderId", async (req, res) => {
-
+router.get("/farmer/:farmerId", async (req, res) => {
     try {
+        const { farmerId } = req.params;
 
+        if (!mongoose.Types.ObjectId.isValid(farmerId)) {
+            return res.status(400).json({
+                message: "Invalid farmer ID."
+            });
+        }
+
+        const orders = await Order.find({
+            "products.farmerId": farmerId
+        }).sort({
+            createdAt: -1
+        });
+
+        const farmerOrders = orders.map(order => ({
+            _id: order._id,
+            buyerId: order.buyerId,
+            buyerName: order.buyerName,
+            totalAmount: order.totalAmount,
+            status: order.status,
+            createdAt: order.createdAt,
+
+            products: order.products.filter(product =>
+                product.farmerId.toString() === farmerId
+            ),
+
+            blockchainTransactions: order.blockchainTransactions
+        }));
+
+        res.status(200).json({
+            count: farmerOrders.length,
+            orders: farmerOrders
+        });
+
+    } catch (error) {
+        console.error("Get Farmer Orders Error:", error);
+
+        res.status(500).json({
+            message: "Unable to fetch farmer orders."
+        });
+    }
+});
+
+
+// =====================================
+// GET ORDER STATUS
+// =====================================
+
+router.get("/status/:orderId", async (req, res) => {
+    try {
         const { orderId } = req.params;
 
+        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(400).json({
+                message: "Invalid order ID."
+            });
+        }
 
         const order = await Order.findById(orderId);
 
-
         if (!order) {
-
             return res.status(404).json({
-
-                message:
-                    "Order not found."
-
+                message: "Order not found."
             });
-
         }
 
-
-        order.status = "Confirmed";
-
-
-        await order.save();
-
-
         res.status(200).json({
-
-            message:
-                "Order confirmed successfully!",
-
-            order: order
-
+            orderId: order._id,
+            status: order.status
         });
-
 
     } catch (error) {
-
-        console.error(
-            "Confirm Order Error:",
-            error
-        );
-
+        console.error("Get Order Status Error:", error);
 
         res.status(500).json({
-
-            message:
-                "Unable to confirm order."
-
+            message: "Unable to fetch order status."
         });
-
     }
-
 });
 
 
@@ -286,39 +226,64 @@ router.put("/confirm/:orderId", async (req, res) => {
 // =====================================
 
 router.get("/all", async (req, res) => {
-
     try {
-
-        const orders = await Order.find()
-            .sort({
-                createdAt: -1
-            });
-
+        const orders = await Order.find().sort({
+            createdAt: -1
+        });
 
         res.status(200).json({
-
-            orders: orders
-
+            count: orders.length,
+            orders
         });
-
 
     } catch (error) {
-
-        console.error(
-            "Get All Orders Error:",
-            error
-        );
-
+        console.error("Get All Orders Error:", error);
 
         res.status(500).json({
+            message: "Unable to fetch orders."
+        });
+    }
+});
 
-            message:
-                "Unable to fetch orders."
 
+// =====================================
+// CONFIRM ORDER
+// =====================================
+
+router.put("/confirm/:orderId", async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(400).json({
+                message: "Invalid order ID."
+            });
+        }
+
+        const order = await Order.findByIdAndUpdate(
+            orderId,
+            { status: "Confirmed" },
+            { new: true }
+        );
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Order not found."
+            });
+        }
+
+        res.status(200).json({
+            message: "Order confirmed successfully!",
+            order
         });
 
-    }
+    } catch (error) {
+        console.error("Confirm Order Error:", error);
 
+        res.status(500).json({
+            message: "Unable to confirm order."
+        });
+    }
 });
 
 
@@ -327,60 +292,39 @@ router.get("/all", async (req, res) => {
 // =====================================
 
 router.put("/complete/:orderId", async (req, res) => {
-
     try {
-
         const { orderId } = req.params;
 
-
-        const order = await Order.findById(orderId);
-
-
-        if (!order) {
-
-            return res.status(404).json({
-
-                message:
-                    "Order not found."
-
+        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(400).json({
+                message: "Invalid order ID."
             });
-
         }
 
-
-        order.status = "Completed";
-
-
-        await order.save();
-
-
-        res.status(200).json({
-
-            message:
-                "Order completed successfully!",
-
-            order: order
-
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "Complete Order Error:",
-            error
+        const order = await Order.findByIdAndUpdate(
+            orderId,
+            { status: "Completed" },
+            { new: true }
         );
 
+        if (!order) {
+            return res.status(404).json({
+                message: "Order not found."
+            });
+        }
 
-        res.status(500).json({
-
-            message:
-                "Unable to complete order."
-
+        res.status(200).json({
+            message: "Order completed successfully!",
+            order
         });
 
-    }
+    } catch (error) {
+        console.error("Complete Order Error:", error);
 
+        res.status(500).json({
+            message: "Unable to complete order."
+        });
+    }
 });
 
 
@@ -389,61 +333,44 @@ router.put("/complete/:orderId", async (req, res) => {
 // =====================================
 
 router.put("/cancel/:orderId", async (req, res) => {
-
     try {
-
         const { orderId } = req.params;
 
-
-        const order = await Order.findById(orderId);
-
-
-        if (!order) {
-
-            return res.status(404).json({
-
-                message:
-                    "Order not found."
-
+        if (!mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(400).json({
+                message: "Invalid order ID."
             });
-
         }
 
-
-        order.status = "Cancelled";
-
-
-        await order.save();
-
-
-        res.status(200).json({
-
-            message:
-                "Order cancelled successfully!",
-
-            order: order
-
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "Cancel Order Error:",
-            error
+        const order = await Order.findByIdAndUpdate(
+            orderId,
+            { status: "Cancelled" },
+            { new: true }
         );
 
+        if (!order) {
+            return res.status(404).json({
+                message: "Order not found."
+            });
+        }
 
-        res.status(500).json({
-
-            message:
-                "Unable to cancel order."
-
+        res.status(200).json({
+            message: "Order cancelled successfully!",
+            order
         });
 
-    }
+    } catch (error) {
+        console.error("Cancel Order Error:", error);
 
+        res.status(500).json({
+            message: "Unable to cancel order."
+        });
+    }
 });
 
+
+// =====================================
+// EXPORT ROUTER
+// =====================================
 
 module.exports = router;

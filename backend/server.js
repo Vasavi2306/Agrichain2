@@ -5,6 +5,7 @@ require("dotenv").config();
 
 const blockchainRoutes = require("./routes/blockchain");
 
+const adminRoutes = require("./routes/admin");
 const authRoutes = require("./routes/auth");
 const productRoutes = require("./routes/product");
 const orderRoutes = require("./routes/order");
@@ -23,10 +24,10 @@ app.use("/api/blockchain", blockchainRoutes);
 // =========================
 // AUTH ROUTES
 // =========================
-
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/server-test", (req, res) => {
     res.json({

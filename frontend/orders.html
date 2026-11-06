@@ -3,219 +3,379 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>My Orders - AgriChain</title>
-
     <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .orders-section {
+            min-height: calc(100vh - 70px);
+            padding: 40px 8%;
+            background: #f4f7f4;
+        }
+
+        .orders-container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        .orders-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .orders-header h1 {
+            color: #1f5f25;
+        }
+
+        .refresh-btn {
+            padding: 10px 18px;
+            border: 1px solid #2e7d32;
+            background: white;
+            color: #2e7d32;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .order-card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 22px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.07);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 18px;
+        }
+
+        .order-id {
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        .order-date {
+            color: #777;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-confirmed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .product-row {
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .product-row h3 {
+            color: #2e7d32;
+            margin-bottom: 8px;
+        }
+
+        .product-row p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        .order-total {
+            margin-top: 18px;
+            font-size: 19px;
+            font-weight: bold;
+            color: #1f5f25;
+        }
+
+        .transaction-box {
+            margin-top: 18px;
+            padding: 15px;
+            background: #f5f8f5;
+            border-radius: 8px;
+        }
+
+        .transaction-box h3 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+
+        .transaction-hash {
+            display: block;
+            font-size: 12px;
+            word-break: break-all;
+            color: #555;
+            margin-top: 8px;
+        }
+
+        .empty-orders {
+            background: white;
+            padding: 45px 20px;
+            text-align: center;
+            border-radius: 12px;
+        }
+
+        .empty-orders button {
+            margin-top: 15px;
+            padding: 11px 20px;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 
 <body>
 
-    <nav>
-        <h2>AgriChain</h2>
+    <nav class="navbar">
+        <div class="logo">🌾 AgriChain</div>
 
-        <div>
-            <a href="buyer.html">Home</a>
-            <a href="products.html">Products</a>
-            <a href="cart.html">Cart</a>
-            <a href="orders.html">My Orders</a>
-            <button onclick="logout()">Logout</button>
-        </div>
+        <ul class="nav-links">
+            <li><a href="buyer.html">Home</a></li>
+            <li><a href="products.html">Products</a></li>
+            <li><a href="cart.html">Cart</a></li>
+            <li><a href="orders.html">My Orders</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
     </nav>
 
+    <section class="orders-section">
+        <div class="orders-container">
 
-    <div class="container">
+            <div class="orders-header">
+                <div>
+                    <h1>My Orders</h1>
+                    <p>Track your agriculture purchases.</p>
+                </div>
 
-        <h1>My Orders</h1>
+                <button class="refresh-btn" onclick="loadOrders()">
+                    🔄 Refresh Orders
+                </button>
+            </div>
 
-        <div id="ordersContainer">
-            <p>Loading orders...</p>
+            <div id="ordersContainer">
+                <div class="empty-orders">Loading orders...</div>
+            </div>
+
         </div>
-
-    </div>
-
+    </section>
 
     <script>
-
-        const user = JSON.parse(localStorage.getItem("user"));
-
         // Check login
-        if (!user) {
+        let user;
 
-            alert("Please login first.");
-
-            window.location.href = "login.html";
-
+        try {
+            user = JSON.parse(localStorage.getItem("user"));
+        } catch (error) {
+            user = null;
         }
 
+        if (!user || !user.id || user.role !== "buyer") {
+            alert("Please login with your buyer account.");
+            window.location.href = "login.html";
+        }
 
+        // Escape values before inserting them into HTML.
+        function escapeHTML(value) {
+            return String(value ?? "").replace(/[&<>"']/g, character => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            })[character]);
+        }
+
+        // Load buyer orders
         async function loadOrders() {
+            const container = document.getElementById("ordersContainer");
+
+            container.innerHTML =
+                '<div class="empty-orders">Loading your orders...</div>';
 
             try {
-
                 const response = await fetch(
-                    `http://localhost:5000/api/orders/buyer/${user.id}`
+                    `http://localhost:5000/api/orders/buyer/${encodeURIComponent(user.id)}`
                 );
 
-                const data = await response.json();
+                const text = await response.text();
+                let data;
 
-                const ordersContainer =
-                    document.getElementById("ordersContainer");
-
-
-                if (!response.ok) {
-
-                    ordersContainer.innerHTML =
-                        "<p>Unable to load orders.</p>";
-
-                    return;
-
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    throw new Error("Backend returned an invalid response. Check the API route.");
                 }
 
+                if (!response.ok) {
+                    throw new Error(data.message || "Unable to load orders.");
+                }
 
-                if (!data.orders || data.orders.length === 0) {
+                const orders = data.orders || [];
 
-                    ordersContainer.innerHTML = `
-                        <div class="card">
-                            <h3>No Orders Yet</h3>
+                if (orders.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-orders">
+                            <h2>No Orders Yet</h2>
                             <p>You have not placed any orders.</p>
-
                             <button onclick="goToProducts()">
                                 Browse Products
                             </button>
                         </div>
                     `;
-
                     return;
-
                 }
 
+                container.innerHTML = "";
 
-                ordersContainer.innerHTML = "";
+                orders.forEach(order => {
+                    const status = order.status || "Pending";
 
+                    const statusClass =
+                        "status-" + status.toLowerCase();
 
-                data.orders.forEach(order => {
-
-                    const orderCard =
-                        document.createElement("div");
-
-                    orderCard.className = "card";
-
+                    const orderDate = order.createdAt
+                        ? new Date(order.createdAt).toLocaleString("en-IN")
+                        : "Date unavailable";
 
                     let productsHTML = "";
 
-
-                    order.products.forEach(product => {
-
+                    (order.products || []).forEach(product => {
                         productsHTML += `
-                            <div class="order-product">
-
-                                <h3>
-                                    ${product.productName}
-                                </h3>
-
-                                <p>
-                                    Farmer:
-                                    ${product.farmerName}
+                            <div class="product-row">
+                                <h3>🌾 ${escapeHTML(product.productName)}</h3>
+                                <p><strong>Farmer:</strong> ${escapeHTML(product.farmerName)}</p>
+                                <p><strong>Quantity:</strong>
+                                    ${escapeHTML(product.quantity)} ${escapeHTML(product.unit)}
                                 </p>
-
-                                <p>
-                                    Quantity:
-                                    ${product.quantity}
-                                    ${product.unit}
+                                <p><strong>Price per unit:</strong>
+                                    ₹${Number(product.price).toFixed(2)}
                                 </p>
-
-                                <p>
-                                    Price:
-                                    ₹${product.price}
+                                <p><strong>Subtotal:</strong>
+                                    ₹${(
+                                        Number(product.quantity) *
+                                        Number(product.price)
+                                    ).toFixed(2)}
                                 </p>
-
                             </div>
                         `;
-
                     });
 
+                    let transactionsHTML = "";
+
+                    if (order.blockchainTransactions?.length) {
+                        transactionsHTML = `
+                            <div class="transaction-box">
+                                <h3>🔗 Blockchain Transaction Details</h3>
+
+                                ${order.blockchainTransactions.map(tx => `
+                                    <p>
+                                        <strong>${escapeHTML(tx.productName)}</strong>
+                                        <span class="transaction-hash">
+                                            ${escapeHTML(tx.transactionHash)}
+                                        </span>
+                                    </p>
+                                `).join("")}
+                            </div>
+                        `;
+                    }
+
+                    const orderCard = document.createElement("div");
+                    orderCard.className = "order-card";
 
                     orderCard.innerHTML = `
+                        <div class="order-header">
+                            <div>
+                                <div class="order-id">
+                                    Order ID: ${escapeHTML(order._id)}
+                                </div>
+                                <div class="order-date">
+                                    ${escapeHTML(orderDate)}
+                                </div>
+                            </div>
 
-                        <h2>
-                            Order #${order._id}
-                        </h2>
+                            <span class="status ${escapeHTML(statusClass)}">
+                                ${escapeHTML(status)}
+                            </span>
+                        </div>
 
-                        <p>
-                            <strong>Status:</strong>
-                            ${order.status}
-                        </p>
-
-                        <p>
-                            <strong>Total:</strong>
-                            ₹${order.totalAmount}
-                        </p>
-
-                        <p>
-                            <strong>Date:</strong>
-                            ${new Date(
-                                order.createdAt
-                            ).toLocaleString()}
-                        </p>
-
-                        <hr>
-
-                        <h3>Products</h3>
+                        <h3>Purchased Products</h3>
 
                         ${productsHTML}
 
+                        <div class="order-total">
+                            Total Amount: ₹${Number(order.totalAmount).toFixed(2)}
+                        </div>
+
+                        ${transactionsHTML}
                     `;
 
-
-                    ordersContainer.appendChild(orderCard);
-
+                    container.appendChild(orderCard);
                 });
 
-
             } catch (error) {
+                console.error("Load Buyer Orders Error:", error);
 
-                console.error(
-                    "Load Orders Error:",
-                    error
-                );
-
-                document.getElementById(
-                    "ordersContainer"
-                ).innerHTML = `
-                    <p>
-                        Unable to connect to server.
-                    </p>
+                container.innerHTML = `
+                    <div class="empty-orders">
+                        <h2>Unable to Load Orders</h2>
+                        <p>${escapeHTML(error.message)}</p>
+                        <p>Please check whether your backend server is running.</p>
+                    </div>
                 `;
-
             }
-
         }
-
 
         function goToProducts() {
-
             window.location.href = "products.html";
-
         }
-
 
         function logout() {
-
             localStorage.removeItem("user");
-
             localStorage.removeItem("cart");
-
             window.location.href = "login.html";
-
         }
 
-
-        // Load orders when page opens
-        loadOrders();
-
+        // Load orders when the page opens.
+        if (user && user.id && user.role === "buyer") {
+            loadOrders();
+        }
     </script>
 
 </body>
-
 </html>

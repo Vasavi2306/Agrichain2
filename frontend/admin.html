@@ -1,0 +1,759 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgriChain Admin Dashboard</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #f4f7f4;
+    color: #26332a;
+}
+
+header {
+    background: #1b5e20;
+    color: white;
+    padding: 20px 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+header h1 { font-size: 25px; }
+
+header button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    background: white;
+    color: #1b5e20;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.container {
+    width: 90%;
+    max-width: 1250px;
+    margin: 30px auto;
+}
+
+.welcome { margin-bottom: 25px; }
+.welcome h2 { color: #1b5e20; margin-bottom: 8px; }
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 18px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    padding: 22px;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    border-left: 5px solid #2e7d32;
+}
+
+.stat-card h3 {
+    font-size: 15px;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.stat-card p {
+    font-size: 30px;
+    font-weight: bold;
+    color: #1b5e20;
+}
+
+.section {
+    background: white;
+    padding: 22px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+}
+
+.section h2 {
+    color: #1b5e20;
+    margin-bottom: 18px;
+}
+
+.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tabs button {
+    padding: 11px 18px;
+    border: none;
+    border-radius: 6px;
+    background: #e8f5e9;
+    color: #1b5e20;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.tabs button.active,
+.tabs button:hover {
+    background: #2e7d32;
+    color: white;
+}
+
+.table-container { overflow-x: auto; }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 650px;
+}
+
+th, td {
+    padding: 13px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    vertical-align: top;
+}
+
+th {
+    background: #e8f5e9;
+    color: #1b5e20;
+}
+
+#message {
+    margin: 12px 0;
+    color: #666;
+}
+
+.refresh-button, .profile-button, .verify-button {
+    padding: 9px 14px;
+    background: #2e7d32;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.refresh-button { margin-bottom: 15px; }
+
+.profile-button:hover,
+.refresh-button:hover,
+.verify-button:hover {
+    background: #1b5e20;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.order-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin: 18px 0;
+}
+
+.order-stat {
+    background: #f1f8f1;
+    border: 1px solid #dcebdc;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.order-stat h4 {
+    color: #555;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.order-stat p {
+    color: #1b5e20;
+    font-size: 25px;
+    font-weight: bold;
+}
+
+.transaction-link {
+    color: #1565c0;
+    overflow-wrap: anywhere;
+    text-decoration: underline;
+}
+
+.verification-result {
+    margin-top: 8px;
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    width: 100%;
+    max-width: 430px;
+    padding: 25px;
+    border-radius: 12px;
+}
+
+.modal-content h2 {
+    color: #1b5e20;
+    margin-bottom: 20px;
+}
+
+.profile-detail {
+    margin: 13px 0;
+    overflow-wrap: anywhere;
+}
+
+.close-button {
+    margin-top: 18px;
+    padding: 10px 18px;
+    background: #1b5e20;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+@media(max-width: 600px) {
+    header { padding: 18px; }
+    .container { width: 94%; }
+    .section { padding: 15px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🌱 AgriChain Admin Panel</h1>
+    <button type="button" onclick="logout()">Logout</button>
+</header>
+
+<div class="container">
+
+    <div class="welcome">
+        <h2>Welcome, <span id="adminName">Admin</span>!</h2>
+        <p>Monitor and manage the AgriChain trading platform.</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Total Users</h3>
+            <p id="totalUsers">-</p>
+        </div>
+
+        <div class="stat-card">
+            <h3>Total Farmers</h3>
+            <p id="totalFarmers">-</p>
+        </div>
+
+        <div class="stat-card">
+            <h3>Total Buyers</h3>
+            <p id="totalBuyers">-</p>
+        </div>
+
+        <div class="stat-card">
+            <h3>Total Products</h3>
+            <p id="totalProducts">-</p>
+        </div>
+
+        <div class="stat-card">
+            <h3>Total Orders</h3>
+            <p id="totalOrders">-</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Platform Management</h2>
+
+        <div class="tabs">
+            <button class="active" onclick="loadSection('farmers', this)">Farmers</button>
+            <button onclick="loadSection('buyers', this)">Buyers</button>
+            <button onclick="loadSection('products', this)">Products</button>
+            <button onclick="loadSection('orders', this)">Orders</button>
+        </div>
+
+        <h3 id="tableTitle">Farmers List</h3>
+        <p id="message">Loading data...</p>
+
+        <div id="orderSummary" class="order-summary" style="display:none;">
+            <div class="order-stat">
+                <h4>Pending</h4>
+                <p id="pendingCount">0</p>
+            </div>
+
+            <div class="order-stat">
+                <h4>Confirmed</h4>
+                <p id="confirmedCount">0</p>
+            </div>
+
+            <div class="order-stat">
+                <h4>Completed</h4>
+                <p id="completedCount">0</p>
+            </div>
+
+            <div class="order-stat">
+                <h4>Cancelled</h4>
+                <p id="cancelledCount">0</p>
+            </div>
+        </div>
+
+        <button class="refresh-button" onclick="refreshCurrentSection()">
+            Refresh Data
+        </button>
+
+        <div class="table-container">
+            <table>
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="profileModal">
+    <div class="modal-content">
+        <h2 id="profileTitle">User Profile</h2>
+
+        <p class="profile-detail"><strong>Name:</strong>
+            <span id="profileName"></span></p>
+
+        <p class="profile-detail"><strong>Email:</strong>
+            <span id="profileEmail"></span></p>
+
+        <p class="profile-detail"><strong>Phone:</strong>
+            <span id="profilePhone"></span></p>
+
+        <p class="profile-detail"><strong>Role:</strong>
+            <span id="profileRole"></span></p>
+
+        <p class="profile-detail"><strong>Joined:</strong>
+            <span id="profileDate"></span></p>
+
+        <button class="close-button" onclick="closeProfile()">Close</button>
+    </div>
+</div>
+
+<script>
+const API_URL = "http://localhost:5000/api/admin";
+const BLOCKCHAIN_API = "http://localhost:5000/api/blockchain";
+
+const token = localStorage.getItem("token");
+let user = null;
+let currentSection = "farmers";
+
+try {
+    user = JSON.parse(localStorage.getItem("user") || "null");
+} catch {
+    user = null;
+}
+
+if (!token || !user || user.role !== "admin") {
+    alert("Please log in as admin.");
+    window.location.href = "admin-login.html";
+} else {
+    document.getElementById("adminName").textContent = user.name || "Admin";
+    loadStats();
+    loadSection("farmers");
+}
+
+function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "admin-login.html";
+}
+
+async function apiRequest(endpoint) {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
+        }
+    });
+
+    if (response.status === 401 || response.status === 403) {
+        logout();
+        throw new Error("Your login session is invalid or expired.");
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Unable to load data.");
+    }
+
+    return data;
+}
+
+async function loadStats() {
+    try {
+        const data = await apiRequest("/stats");
+
+        document.getElementById("totalUsers").textContent = data.totalUsers ?? 0;
+        document.getElementById("totalFarmers").textContent = data.totalFarmers ?? 0;
+        document.getElementById("totalBuyers").textContent = data.totalBuyers ?? 0;
+        document.getElementById("totalProducts").textContent = data.totalProducts ?? 0;
+        document.getElementById("totalOrders").textContent = data.totalOrders ?? 0;
+    } catch (error) {
+        console.error(error);
+        document.getElementById("message").textContent = error.message;
+    }
+}
+
+async function loadSection(section, button = null) {
+    currentSection = section;
+
+    document.querySelectorAll(".tabs button").forEach(btn => {
+        btn.classList.remove("active");
+    });
+
+    if (button) {
+        button.classList.add("active");
+    } else {
+        [...document.querySelectorAll(".tabs button")]
+            .find(btn => btn.textContent.trim().toLowerCase() === section)
+            ?.classList.add("active");
+    }
+
+    const titles = {
+        farmers: "Farmers List",
+        buyers: "Buyers List",
+        products: "Products List",
+        orders: "Orders List"
+    };
+
+    document.getElementById("tableTitle").textContent = titles[section];
+    document.getElementById("message").textContent = "Loading data...";
+    document.getElementById("tableHead").innerHTML = "";
+    document.getElementById("tableBody").innerHTML = "";
+
+    try {
+        const data = await apiRequest("/" + section);
+        displayData(section, data);
+    } catch (error) {
+        console.error(error);
+        document.getElementById("message").textContent = error.message;
+    }
+}
+
+function displayData(section, data) {
+    const rows = data[section] || [];
+    const tableHead = document.getElementById("tableHead");
+    const tableBody = document.getElementById("tableBody");
+    const message = document.getElementById("message");
+    const orderSummary = document.getElementById("orderSummary");
+
+    tableHead.innerHTML = "";
+    tableBody.innerHTML = "";
+
+    orderSummary.style.display = section === "orders" ? "grid" : "none";
+
+    if (section === "orders") {
+        const statuses = {
+            Pending: 0,
+            Confirmed: 0,
+            Completed: 0,
+            Cancelled: 0
+        };
+
+        rows.forEach(order => {
+            if (statuses[order.status] !== undefined) {
+                statuses[order.status]++;
+            }
+        });
+
+        document.getElementById("pendingCount").textContent = statuses.Pending;
+        document.getElementById("confirmedCount").textContent = statuses.Confirmed;
+        document.getElementById("completedCount").textContent = statuses.Completed;
+        document.getElementById("cancelledCount").textContent = statuses.Cancelled;
+
+        const columns = [
+            "Order ID", "Buyer", "Products", "Farmer",
+            "Total Amount", "Status", "Date", "Blockchain Transactions"
+        ];
+
+        const headerRow = document.createElement("tr");
+
+        columns.forEach(column => {
+            const th = document.createElement("th");
+            th.textContent = column;
+            headerRow.appendChild(th);
+        });
+
+        tableHead.appendChild(headerRow);
+
+        if (!rows.length) {
+            message.textContent = "No orders found.";
+            return;
+        }
+
+        message.textContent = `${rows.length} order(s) found.`;
+
+        rows.forEach(order => {
+            const tr = document.createElement("tr");
+            const products = order.products || [];
+
+            const productDetails = products.map(product =>
+                `${product.productName || "-"} | ${product.quantity ?? "-"} ${product.unit || ""} | ₹${product.price ?? "-"}`
+            ).join("\n");
+
+            const farmerDetails = [...new Set(
+                products.map(product => product.farmerName || "-")
+            )].join(", ");
+
+            const values = [
+                order._id || "-",
+                order.buyerName || "-",
+                productDetails || "-",
+                farmerDetails || "-",
+                order.totalAmount != null ? "₹" + order.totalAmount : "-",
+                order.status || "-",
+                order.createdAt ? new Date(order.createdAt).toLocaleString() : "-"
+            ];
+
+            values.forEach(value => {
+                const td = document.createElement("td");
+                td.textContent = value;
+                td.style.whiteSpace = "pre-line";
+                tr.appendChild(td);
+            });
+
+            const transactionCell = document.createElement("td");
+            const transactions = order.blockchainTransactions || [];
+
+            if (!transactions.length) {
+                transactionCell.textContent = "No transaction recorded";
+            }
+
+            transactions.forEach(transaction => {
+                const hash = transaction.transactionHash;
+
+                const productName = document.createElement("strong");
+                productName.textContent = (transaction.productName || "Product") + ": ";
+
+                transactionCell.appendChild(productName);
+                transactionCell.appendChild(document.createElement("br"));
+
+                if (!hash) {
+                    transactionCell.appendChild(
+                        document.createTextNode("Transaction hash unavailable")
+                    );
+                    transactionCell.appendChild(document.createElement("br"));
+                    return;
+                }
+
+                const link = document.createElement("a");
+                link.className = "transaction-link";
+                link.textContent = hash;
+                link.href = "transaction-receipt.html?hash=" + encodeURIComponent(hash);
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+
+                transactionCell.appendChild(link);
+                transactionCell.appendChild(document.createElement("br"));
+
+                const verifyButton = document.createElement("button");
+                verifyButton.className = "verify-button";
+                verifyButton.textContent = "Verify Transaction";
+
+                const result = document.createElement("p");
+                result.className = "verification-result";
+                result.textContent = "Not checked yet";
+
+                verifyButton.addEventListener("click", async () => {
+                    verifyButton.disabled = true;
+                    verifyButton.textContent = "Verifying...";
+                    result.textContent = "Checking blockchain...";
+                    result.style.color = "#555";
+
+                    try {
+                        const response = await fetch(
+                            `${BLOCKCHAIN_API}/verify/${encodeURIComponent(hash)}`
+                        );
+
+                        const verification = await response.json();
+
+                        if (verification.verified === true) {
+                            result.textContent = "✓ Verified on blockchain";
+                            result.style.color = "#2e7d32";
+                        } else {
+                            result.textContent =
+                                "✗ " + (verification.status || verification.message || "Not Verified");
+                            result.style.color = "#c62828";
+                        }
+                    } catch (error) {
+                        console.error("Verification error:", error);
+                        result.textContent = "Verification Error";
+                        result.style.color = "#c62828";
+                    } finally {
+                        verifyButton.disabled = false;
+                        verifyButton.textContent = "Verify Again";
+                    }
+                });
+
+                transactionCell.appendChild(verifyButton);
+                transactionCell.appendChild(result);
+                transactionCell.appendChild(document.createElement("br"));
+            });
+
+            tr.appendChild(transactionCell);
+            tableBody.appendChild(tr);
+        });
+
+        return;
+    }
+
+    const configurations = {
+        farmers: {
+            columns: ["Name", "Email", "Phone", "Role", "Action"],
+            values: item => [item.name, item.email, item.phone, item.role]
+        },
+
+        buyers: {
+            columns: ["Name", "Email", "Phone", "Role", "Action"],
+            values: item => [item.name, item.email, item.phone, item.role]
+        },
+
+        products: {
+            columns: ["Product", "Farmer", "Category", "Quantity", "Price"],
+            values: item => [
+                item.name || item.productName || "-",
+                item.farmerName || "-",
+                item.category || "-",
+                (item.quantity ?? "-") + (item.unit ? " " + item.unit : ""),
+                item.price != null ? "₹" + item.price : "-"
+            ]
+        }
+    };
+
+    const config = configurations[section];
+
+    if (!config) {
+        message.textContent = "Unknown section.";
+        return;
+    }
+
+    const headerRow = document.createElement("tr");
+
+    config.columns.forEach(column => {
+        const th = document.createElement("th");
+        th.textContent = column;
+        headerRow.appendChild(th);
+    });
+
+    tableHead.appendChild(headerRow);
+
+    if (!rows.length) {
+        message.textContent = `No ${section} found.`;
+        return;
+    }
+
+    message.textContent = `${rows.length} record(s) found.`;
+
+    rows.forEach(item => {
+        const tr = document.createElement("tr");
+
+        config.values(item).forEach(value => {
+            const td = document.createElement("td");
+            td.textContent = value == null ? "-" : String(value);
+            tr.appendChild(td);
+        });
+
+        if (section === "farmers" || section === "buyers") {
+            const actionCell = document.createElement("td");
+            const profileButton = document.createElement("button");
+
+            profileButton.type = "button";
+            profileButton.textContent = "View Profile";
+            profileButton.className = "profile-button";
+
+            profileButton.addEventListener("click", () => {
+                viewProfile(section, item._id);
+            });
+
+            actionCell.appendChild(profileButton);
+            tr.appendChild(actionCell);
+        }
+
+        tableBody.appendChild(tr);
+    });
+}
+
+async function viewProfile(section, id) {
+    if (!id) {
+        alert("User ID is missing.");
+        return;
+    }
+
+    try {
+        const data = await apiRequest(
+            `/${section === "farmers" ? "farmer" : "buyer"}/${encodeURIComponent(id)}`
+        );
+
+        const profile = data.farmer || data.buyer;
+
+        if (!profile) {
+            throw new Error("Profile details not found.");
+        }
+
+        document.getElementById("profileTitle").textContent =
+            section === "farmers" ? "Farmer Profile" : "Buyer Profile";
+
+        document.getElementById("profileName").textContent = profile.name || "-";
+        document.getElementById("profileEmail").textContent = profile.email || "-";
+        document.getElementById("profilePhone").textContent = profile.phone || "-";
+        document.getElementById("profileRole").textContent = profile.role || "-";
+
+        document.getElementById("profileDate").textContent =
+            profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "-";
+
+        document.getElementById("profileModal").style.display = "flex";
+    } catch (error) {
+        console.error(error);
+        alert(error.message);
+    }
+}
+
+function closeProfile() {
+    document.getElementById("profileModal").style.display = "none";
+}
+
+document.getElementById("profileModal").addEventListener("click", function(event) {
+    if (event.target === this) {
+        closeProfile();
+    }
+});
+
+function refreshCurrentSection() {
+    loadStats();
+    loadSection(currentSection);
+}
+</script>
+
+</body>
+</html>

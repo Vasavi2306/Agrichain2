@@ -60,11 +60,31 @@ const orderSchema = new mongoose.Schema(
         },
 
         blockchainTransactions: [
-            {
-                productName: String,
-                transactionHash: String
-            }
-        ],
+    {
+        productName: {
+            type: String
+        },
+        transactionHash: {
+            type: String
+        },
+        verified: {
+            type: Boolean,
+            default: false
+        },
+        verificationStatus: {
+            type: String,
+            default: "Pending"
+        },
+        blockNumber: {
+            type: Number,
+            default: null
+        },
+        verifiedAt: {
+            type: Date,
+            default: null
+        }
+    }
+],
 
         status: {
             type: String,
@@ -77,11 +97,9 @@ const orderSchema = new mongoose.Schema(
             default: "Pending"
         }
     },
-
     {
         timestamps: true
     }
 );
 
-module.exports =
-    mongoose.model("Order", orderSchema);
+module.exports = mongoose.model("Order", orderSchema);

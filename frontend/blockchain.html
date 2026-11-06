@@ -1,8 +1,8 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -11,10 +11,9 @@
     <link rel="stylesheet" href="css/style.css">
 
     <style>
-
         .blockchain-container {
             width: 95%;
-            max-width: 1400px;
+            max-width: 1500px;
             margin: 40px auto;
         }
 
@@ -37,8 +36,8 @@
             padding: 25px;
             border-radius: 12px;
             text-align: center;
-            margin-bottom: 30px;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.1);
         }
 
         .transaction-count h2 {
@@ -56,32 +55,28 @@
             padding: 20px;
             border-radius: 12px;
             overflow-x: auto;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 3px 12px rgba(0,0,0,0.1);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1200px;
+            min-width: 1400px;
         }
 
-        th,
-        td {
-            padding: 14px;
+        th, td {
+            padding: 13px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
 
         th {
+            background: #f5f7f5;
             font-weight: bold;
         }
 
         tr:hover {
             background-color: #f7f7f7;
-        }
-
-        .verified {
-            font-weight: bold;
         }
 
         .hash {
@@ -92,28 +87,72 @@
             color: #1a73e8;
         }
 
-        .hash-not-available {
-            color: #888;
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
         }
 
-        .empty-message {
+        .status-verified {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-error {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .empty-message,
+        .loading {
             text-align: center;
             padding: 40px;
             color: #666;
         }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
+        .refresh-btn {
+            display: block;
+            margin: 0 auto 25px;
+            padding: 11px 25px;
+            background: #218838;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 15px;
         }
 
+        .refresh-btn:hover {
+            background: #176b2c;
+        }
+
+        .verification-details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .hash-not-available {
+            color: #888;
+        }
     </style>
 
 </head>
 
-
 <body>
-
 
     <!-- NAVIGATION BAR -->
 
@@ -125,25 +164,15 @@
 
         <div class="nav-links">
 
-            <a href="index.html">
-                Home
-            </a>
+            <a href="index.html">Home</a>
 
-            <a href="products.html">
-                Products
-            </a>
+            <a href="products.html">Products</a>
 
-            <a href="buyer.html">
-                Buyer
-            </a>
+            <a href="buyer.html">Buyer</a>
 
-            <a href="farmer.html">
-                Farmer
-            </a>
+            <a href="farmer.html">Farmer</a>
 
-            <a href="blockchain.html">
-                🔗 Blockchain
-            </a>
+            <a href="blockchain.html">🔗 Blockchain</a>
 
         </div>
 
@@ -154,14 +183,9 @@
 
     <div class="blockchain-container">
 
-
-        <!-- HEADER -->
-
         <div class="blockchain-header">
 
-            <h1>
-                🔗 Blockchain Transaction History
-            </h1>
+            <h1>🔗 Blockchain Transaction History</h1>
 
             <p>
                 Transparent and tamper-resistant agricultural
@@ -175,15 +199,23 @@
 
         <div class="transaction-count">
 
-            <h2 id="transactionCount">
-                ...
-            </h2>
+            <h2 id="transactionCount">...</h2>
 
-            <p>
-                Total Blockchain Transactions
-            </p>
+            <p>Total Blockchain Transactions</p>
 
         </div>
+
+
+        <!-- REFRESH BUTTON -->
+
+        <button
+            class="refresh-btn"
+            id="refreshButton"
+            type="button">
+
+            🔄 Refresh Transactions
+
+        </button>
 
 
         <!-- TRANSACTION TABLE -->
@@ -195,45 +227,28 @@
                 <thead>
 
                     <tr>
-
                         <th>#</th>
-
                         <th>Order ID</th>
-
                         <th>Product</th>
-
                         <th>Farmer</th>
-
                         <th>Buyer</th>
-
                         <th>Quantity</th>
-
                         <th>Price</th>
-
                         <th>Timestamp</th>
-
                         <th>Transaction Hash</th>
-
-                        <th>Status</th>
-
+                        <th>Block Number</th>
+                        <th>Gas Used</th>
+                        <th>Verification Status</th>
                     </tr>
 
                 </thead>
 
-
                 <tbody id="transactionTable">
 
                     <tr>
-
-                        <td
-                            colspan="10"
-                            class="loading"
-                        >
-
+                        <td colspan="12" class="loading">
                             Loading blockchain transactions...
-
                         </td>
-
                     </tr>
 
                 </tbody>
@@ -249,244 +264,363 @@
 
     <script>
 
-        async function loadBlockchainTransactions() {
+        const API_URL = "http://localhost:5000/api/blockchain";
 
-            const table =
-                document.getElementById(
-                    "transactionTable"
-                );
 
+        // Create table cell safely
+
+        function createCell(value, className = "") {
+
+            const cell = document.createElement("td");
+
+            cell.textContent = value ?? "-";
+
+            if (className) {
+                cell.className = className;
+            }
+
+            return cell;
+        }
+
+
+        // Create verification status badge
+
+        function createStatusBadge(status) {
+
+            const badge = document.createElement("span");
+
+            badge.className = "status";
+
+            if (status === "Verified") {
+
+                badge.classList.add("status-verified");
+                badge.textContent = "✓ Verified";
+
+            } else if (status === "Pending") {
+
+                badge.classList.add("status-pending");
+                badge.textContent = "⏳ Pending";
+
+            } else if (status === "Failed") {
+
+                badge.classList.add("status-failed");
+                badge.textContent = "✗ Failed";
+
+            } else {
+
+                badge.classList.add("status-error");
+                badge.textContent = status;
+
+            }
+
+            return badge;
+        }
+
+
+        // Verify transaction using backend API
+
+        async function verifyBlockchainTransaction(hash) {
 
             try {
 
-                const response =
-                    await fetch(
-                        "http://localhost:5000/api/blockchain/transactions"
-                    );
-
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        "Unable to connect to blockchain API"
-                    );
-
-                }
-
-
-                const data =
-                    await response.json();
-
-
-                /*
-                 * Display total number of
-                 * blockchain transactions
-                 */
-
-                document.getElementById(
-                    "transactionCount"
-                ).textContent =
-                    data.count;
-
-
-                /*
-                 * Check if there are
-                 * no transactions
-                 */
-
-                if (
-                    !data.transactions ||
-                    data.transactions.length === 0
-                ) {
-
-                    table.innerHTML = `
-
-                        <tr>
-
-                            <td
-                                colspan="10"
-                                class="empty-message"
-                            >
-
-                                No blockchain transactions found.
-
-                            </td>
-
-                        </tr>
-
-                    `;
-
-                    return;
-
-                }
-
-
-                /*
-                 * Clear loading message
-                 */
-
-                table.innerHTML = "";
-
-
-                /*
-                 * Display every blockchain transaction
-                 */
-
-                data.transactions.forEach(
-                    (transaction, index) => {
-
-
-                        /*
-                         * Convert blockchain timestamp
-                         * into normal date and time
-                         */
-
-                        const date =
-                            new Date(
-                                transaction.timestamp * 1000
-                            );
-
-
-                        /*
-                         * Create table row
-                         */
-
-                        const row =
-                            document.createElement("tr");
-
-
-                        /*
-                         * Get transaction hash
-                         */
-
-                        const transactionHash =
-                            transaction.transactionHash;
-
-
-                        /*
-                         * Create row contents
-                         */
-
-                        row.innerHTML = `
-
-                            <td>
-                                ${index + 1}
-                            </td>
-
-
-                            <td>
-                                ${transaction.orderId}
-                            </td>
-
-
-                            <td>
-                                ${transaction.productName}
-                            </td>
-
-
-                            <td>
-                                ${transaction.farmerName}
-                            </td>
-
-
-                            <td>
-                                ${transaction.buyerName}
-                            </td>
-
-
-                            <td>
-                                ${transaction.quantity}
-                            </td>
-
-
-                            <td>
-                                ₹${transaction.price}
-                            </td>
-
-
-                            <td>
-                                ${date.toLocaleString()}
-                            </td>
-
-
-                            <td class="hash">
-
-                                ${
-                                    transactionHash
-                                        ? transactionHash
-                                        : `<span class="hash-not-available">
-                                            Hash not available
-                                           </span>`
-                                }
-
-                            </td>
-
-
-                            <td class="verified">
-
-                                ✓ Verified
-
-                            </td>
-
-                        `;
-
-
-                        /*
-                         * Add row to table
-                         */
-
-                        table.appendChild(row);
-
-                    }
+                const response = await fetch(
+                    `${API_URL}/verify/${encodeURIComponent(hash)}`
                 );
 
+                const result = await response.json();
+
+                if (result.status === "Pending") {
+                    return {
+                        status: "Pending",
+                        details: result.message
+                    };
+                }
+
+                if (
+                    response.ok &&
+                    result.verified === true &&
+                    result.receiptStatus === 1
+                ) {
+
+                    return {
+                        status: "Verified",
+                        blockNumber: result.blockNumber,
+                        gasUsed: result.gasUsed,
+                        details: result.message
+                    };
+
+                }
+
+                if (result.status === "Failed") {
+
+                    return {
+                        status: "Failed",
+                        details: result.message
+                    };
+
+                }
+
+                return {
+                    status: result.status || "Error",
+                    details: result.message || "Verification unsuccessful."
+                };
 
             } catch (error) {
 
+                console.error("Verification error:", error);
 
-                console.error(
-                    "Blockchain Error:",
-                    error
-                );
-
-
-                table.innerHTML = `
-
-                    <tr>
-
-                        <td
-                            colspan="10"
-                            class="empty-message"
-                        >
-
-                            ❌ Unable to load blockchain
-                            transactions.
-
-                            <br><br>
-
-                            Make sure Hardhat and the
-                            backend server are running.
-
-                        </td>
-
-                    </tr>
-
-                `;
+                return {
+                    status: "Error",
+                    details: "Unable to connect to verification API."
+                };
 
             }
 
         }
 
 
-        /*
-         * Load transactions when
-         * page opens
-         */
+        // Load all blockchain transactions
+
+        async function loadBlockchainTransactions() {
+
+            const table = document.getElementById("transactionTable");
+
+            const countElement = document.getElementById("transactionCount");
+
+            table.innerHTML = "";
+
+            countElement.textContent = "...";
+
+            const loadingRow = document.createElement("tr");
+            const loadingCell = createCell("Loading blockchain transactions...");
+            loadingCell.colSpan = 12;
+            loadingCell.className = "loading";
+            loadingRow.appendChild(loadingCell);
+            table.appendChild(loadingRow);
+
+
+            try {
+
+                // Get blockchain transaction history
+
+                const response = await fetch(
+                    `${API_URL}/transactions`
+                );
+
+                if (!response.ok) {
+                    throw new Error("Unable to fetch blockchain transactions.");
+                }
+
+                const data = await response.json();
+
+                countElement.textContent = data.count ?? 0;
+
+                table.innerHTML = "";
+
+
+                // Check for empty transactions
+
+                if (!data.transactions || data.transactions.length === 0) {
+
+                    const row = document.createElement("tr");
+
+                    const cell = createCell(
+                        "No blockchain transactions found."
+                    );
+
+                    cell.colSpan = 12;
+                    cell.className = "empty-message";
+
+                    row.appendChild(cell);
+                    table.appendChild(row);
+
+                    return;
+
+                }
+
+
+                // Display each transaction
+
+                for (let i = 0; i < data.transactions.length; i++) {
+
+                    const transaction = data.transactions[i];
+
+                    const row = document.createElement("tr");
+
+                    const transactionHash = transaction.transactionHash;
+
+
+                    // Format timestamp
+
+                    const date = transaction.timestamp
+                        ? new Date(Number(transaction.timestamp) * 1000)
+                        : null;
+
+                    const formattedDate = date && !isNaN(date.getTime())
+                        ? date.toLocaleString()
+                        : "-";
+
+
+                    // Basic transaction information
+
+                    row.appendChild(createCell(i + 1));
+
+                    row.appendChild(createCell(transaction.orderId));
+
+                    row.appendChild(createCell(transaction.productName));
+
+                    row.appendChild(createCell(transaction.farmerName));
+
+                    row.appendChild(createCell(transaction.buyerName));
+
+                    row.appendChild(createCell(transaction.quantity));
+
+                    row.appendChild(
+                        createCell(`₹${transaction.price}`)
+                    );
+
+                    row.appendChild(createCell(formattedDate));
+
+
+                    // Transaction hash
+
+                    if (transactionHash) {
+
+                        row.appendChild(
+                            createCell(transactionHash, "hash")
+                        );
+
+                    } else {
+
+                        row.appendChild(
+                            createCell("Hash not available", "hash-not-available")
+                        );
+
+                    }
+
+
+                    // Initial block and gas cells
+
+                    const blockCell = createCell("-");
+
+                    const gasCell = createCell("-");
+
+                    row.appendChild(blockCell);
+
+                    row.appendChild(gasCell);
+
+
+                    // Verification status
+
+                    const statusCell = document.createElement("td");
+
+                    if (!transactionHash) {
+
+                        statusCell.appendChild(
+                            createStatusBadge("Not Available")
+                        );
+
+                    } else {
+
+                        statusCell.appendChild(
+                            createStatusBadge("Checking")
+                        );
+
+                    }
+
+                    row.appendChild(statusCell);
+
+                    table.appendChild(row);
+
+
+                    // Verify transaction using actual receipt
+
+                    if (transactionHash) {
+
+                        const verification =
+                            await verifyBlockchainTransaction(transactionHash);
+
+
+                        // Update status after verification
+
+                        statusCell.innerHTML = "";
+
+                        statusCell.appendChild(
+                            createStatusBadge(verification.status)
+                        );
+
+
+                        // Display block number and gas used
+
+                        if (verification.blockNumber !== undefined) {
+
+                            blockCell.textContent =
+                                verification.blockNumber;
+
+                        }
+
+                        if (verification.gasUsed !== undefined) {
+
+                            gasCell.textContent =
+                                verification.gasUsed;
+
+                        }
+
+                        if (verification.details) {
+
+                            const details =
+                                document.createElement("div");
+
+                            details.className = "verification-details";
+
+                            details.textContent = verification.details;
+
+                            statusCell.appendChild(details);
+
+                        }
+
+                    }
+
+                }
+
+            } catch (error) {
+
+                console.error("Blockchain Error:", error);
+
+                countElement.textContent = "Error";
+
+                table.innerHTML = "";
+
+                const row = document.createElement("tr");
+
+                const cell = createCell(
+                    "Unable to load blockchain transactions. " +
+                    "Check whether Hardhat and the backend server are running."
+                );
+
+                cell.colSpan = 12;
+                cell.className = "empty-message";
+
+                row.appendChild(cell);
+
+                table.appendChild(row);
+
+            }
+
+        }
+
+
+        // Refresh button
+
+        document.getElementById("refreshButton")
+            .addEventListener("click", loadBlockchainTransactions);
+
+
+        // Load transactions when page opens
 
         loadBlockchainTransactions();
 
     </script>
-
 
 </body>
 

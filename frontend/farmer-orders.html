@@ -1,12 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Farmer Orders - AgriChain</title>
-
     <link rel="stylesheet" href="css/style.css">
 
     <style>
@@ -36,7 +34,7 @@
             padding: 25px;
             margin-bottom: 25px;
             border-radius: 12px;
-            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.07);
+            box-shadow: 0 3px 15px rgba(0,0,0,0.07);
         }
 
         .order-header {
@@ -46,6 +44,7 @@
             padding-bottom: 15px;
             border-bottom: 1px solid #eee;
             margin-bottom: 18px;
+            gap: 12px;
         }
 
         .order-id {
@@ -116,6 +115,8 @@
             justify-content: space-between;
             align-items: center;
             margin-top: 20px;
+            gap: 15px;
+            flex-wrap: wrap;
         }
 
         .order-total {
@@ -130,14 +131,17 @@
             flex-wrap: wrap;
         }
 
-        .confirm-btn {
-            padding: 11px 20px;
-            background: #2e7d32;
+        .action-buttons button {
+            padding: 11px 18px;
             color: white;
             border: none;
             border-radius: 7px;
             cursor: pointer;
             font-weight: bold;
+        }
+
+        .confirm-btn {
+            background: #2e7d32;
         }
 
         .confirm-btn:hover {
@@ -145,13 +149,7 @@
         }
 
         .complete-btn {
-            padding: 11px 20px;
             background: #1565c0;
-            color: white;
-            border: none;
-            border-radius: 7px;
-            cursor: pointer;
-            font-weight: bold;
         }
 
         .complete-btn:hover {
@@ -159,13 +157,7 @@
         }
 
         .cancel-order-btn {
-            padding: 11px 20px;
             background: #c62828;
-            color: white;
-            border: none;
-            border-radius: 7px;
-            cursor: pointer;
-            font-weight: bold;
         }
 
         .cancel-order-btn:hover {
@@ -190,10 +182,6 @@
             border-radius: 6px;
         }
 
-        .back-btn:hover {
-            background: #256628;
-        }
-
         .refresh-btn {
             margin-bottom: 25px;
             margin-left: 8px;
@@ -206,12 +194,28 @@
             font-weight: bold;
         }
 
-        .refresh-btn:hover {
-            background: #f0f7f0;
+        .transaction-box {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f5f8f5;
+            border-radius: 7px;
+        }
+
+        .transaction-box p {
+            font-weight: bold;
+            color: #2e7d32;
+            margin-bottom: 8px;
+        }
+
+        .transaction-hash {
+            display: block;
+            font-size: 12px;
+            color: #555;
+            word-break: break-all;
+            margin-bottom: 8px;
         }
 
         @media (max-width: 768px) {
-
             .orders-section {
                 padding: 35px 20px;
             }
@@ -220,7 +224,6 @@
             .order-footer {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 12px;
             }
 
             .action-buttons {
@@ -236,706 +239,349 @@
 
 <body>
 
-    <!-- NAVBAR -->
-
     <nav class="navbar">
-
-        <div class="logo">
-            🌾 AgriChain
-        </div>
+        <div class="logo">🌾 AgriChain</div>
 
         <ul class="nav-links">
-
-            <li>
-                <a href="farmer.html">
-                    Dashboard
-                </a>
-            </li>
-
-            <li>
-                <a href="farmer-orders.html">
-                    Orders
-                </a>
-            </li>
-
-            <li>
-                <a href="#" onclick="logout()">
-                    Logout
-                </a>
-            </li>
-
+            <li><a href="farmer.html">Dashboard</a></li>
+            <li><a href="farmer-orders.html">Orders</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
         </ul>
-
     </nav>
 
-
-    <!-- ORDERS -->
-
     <section class="orders-section">
-
         <div class="orders-container">
 
             <a href="farmer.html" class="back-btn">
                 ← Back to Dashboard
             </a>
 
-            <button
-                class="refresh-btn"
-                onclick="loadOrders()">
-
+            <button class="refresh-btn" onclick="loadOrders()">
                 🔄 Refresh Orders
-
             </button>
 
-            <h1>
-                Incoming Orders
-            </h1>
+            <h1>Incoming Orders</h1>
 
             <p class="orders-subtitle">
                 View orders placed for your products and manage their status.
             </p>
 
             <div id="ordersContainer">
-
-                <div class="empty-orders">
-                    Loading orders...
-                </div>
-
+                <div class="empty-orders">Loading orders...</div>
             </div>
 
         </div>
-
     </section>
 
-
     <script>
-
-        // ==========================================
+        // =====================================
         // CHECK LOGIN
-        // ==========================================
+        // =====================================
 
-        const userData =
-            localStorage.getItem("user");
+        const userData = localStorage.getItem("user");
 
         if (!userData) {
-
             alert("Please login first.");
-
-            window.location.href =
-                "login.html";
-
+            window.location.href = "login.html";
         }
 
-        const user =
-            JSON.parse(userData);
+        let user;
 
+        try {
+            user = JSON.parse(userData);
+        } catch (error) {
+            alert("Invalid login information. Please login again.");
+            localStorage.removeItem("user");
+            window.location.href = "login.html";
+        }
 
-        // ==========================================
-        // LOAD ORDERS
-        // ==========================================
+        if (!user || !user.id) {
+            alert("User information is missing. Please login again.");
+            window.location.href = "login.html";
+        }
+
+        // Escape database values before displaying them in HTML.
+        function escapeHTML(value) {
+            return String(value ?? "").replace(/[&<>"']/g, character => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            })[character]);
+        }
+
+        // =====================================
+        // LOAD FARMER ORDERS
+        // =====================================
 
         async function loadOrders() {
-
-            const container =
-                document.getElementById(
-                    "ordersContainer"
-                );
+            const container = document.getElementById("ordersContainer");
 
             container.innerHTML = `
-                <div class="empty-orders">
-                    Loading orders...
-                </div>
+                <div class="empty-orders">Loading orders...</div>
             `;
 
             try {
+                // Fetch only this farmer's orders.
+                const response = await fetch(
+                    `http://localhost:5000/api/orders/farmer/${encodeURIComponent(user.id)}`
+                );
 
-                const response =
-                    await fetch(
-                        "http://localhost:5000/api/orders/all"
-                    );
-
-                const data =
-                    await response.json();
-
+                const data = await response.json();
 
                 if (!response.ok) {
-
                     throw new Error(
-                        data.message ||
-                        "Unable to load orders."
+                        data.message || "Unable to load farmer orders."
                     );
-
                 }
 
-
-                let orders =
-                    data.orders || [];
-
-
-                // ==========================================
-                // SHOW ONLY THIS FARMER'S PRODUCTS
-                // ==========================================
-
-                orders =
-                    orders.filter(order => {
-
-                        return order.products.some(
-                            product =>
-                                String(product.farmerId) ===
-                                String(user.id)
-                        );
-
-                    });
-
-
-                // ==========================================
-                // NO ORDERS
-                // ==========================================
+                const orders = data.orders || [];
 
                 if (orders.length === 0) {
-
                     container.innerHTML = `
-
                         <div class="empty-orders">
-
-                            <h2>
-                                No Incoming Orders
-                            </h2>
-
-                            <p>
-                                There are no orders for your
-                                products yet.
-                            </p>
-
+                            <h2>No Incoming Orders</h2>
+                            <p>There are no orders for your products yet.</p>
                         </div>
-
                     `;
-
                     return;
-
                 }
-
 
                 container.innerHTML = "";
 
-
-                // ==========================================
-                // DISPLAY EACH ORDER
-                // ==========================================
-
                 orders.forEach(order => {
-
                     let productsHTML = "";
+                    let farmerSubtotal = 0;
 
+                    (order.products || []).forEach(product => {
+                        farmerSubtotal +=
+                            Number(product.quantity) * Number(product.price);
 
-                    order.products.forEach(
-                        product => {
-
-                            // Only show this farmer's products
-
-                            if (
-                                String(product.farmerId) !==
-                                String(user.id)
-                            ) {
-                                return;
-                            }
-
-
-                            productsHTML += `
-
-                                <div class="product-row">
-
-                                    <div class="product-name">
-
-                                        🌾
-                                        ${product.productName}
-
-                                    </div>
-
-                                    <div class="product-details">
-
-                                        Quantity:
-                                        ${product.quantity}
-                                        ${product.unit}
-
-                                        <br>
-
-                                        Price:
-                                        ₹${Number(
-                                            product.price
-                                        ).toFixed(2)}
-
-                                    </div>
-
+                        productsHTML += `
+                            <div class="product-row">
+                                <div class="product-name">
+                                    🌾 ${escapeHTML(product.productName)}
                                 </div>
 
-                            `;
+                                <div class="product-details">
+                                    Quantity:
+                                    ${escapeHTML(product.quantity)}
+                                    ${escapeHTML(product.unit)}
+                                    <br>
 
-                        }
-                    );
+                                    Price per unit:
+                                    ₹${Number(product.price).toFixed(2)}
+                                    <br>
 
+                                    Subtotal:
+                                    ₹${(
+                                        Number(product.quantity) *
+                                        Number(product.price)
+                                    ).toFixed(2)}
+                                </div>
+                            </div>
+                        `;
+                    });
 
-                    // ==========================================
-                    // STATUS CLASS
-                    // ==========================================
+                    const status = order.status || "Pending";
 
                     const statusClass =
-                        "status-" +
-                        order.status.toLowerCase();
+                        "status-" + status.toLowerCase();
 
-
-                    // ==========================================
-                    // ORDER DATE
-                    // ==========================================
-
-                    const orderDate =
-                        new Date(
-                            order.createdAt
-                        ).toLocaleString();
-
-
-                    // ==========================================
-                    // ACTION BUTTONS
-                    // ==========================================
+                    const orderDate = new Date(
+                        order.createdAt
+                    ).toLocaleString("en-IN");
 
                     let actionButtons = "";
 
-
-                    // PENDING
-
-                    if (
-                        order.status ===
-                        "Pending"
-                    ) {
-
+                    if (status === "Pending") {
                         actionButtons = `
-
                             <button
                                 class="confirm-btn"
-                                onclick="confirmOrder(
-                                    '${order._id}'
-                                )">
-
+                                onclick="confirmOrder('${escapeHTML(order._id)}')">
                                 ✅ Confirm Order
-
                             </button>
-
 
                             <button
                                 class="cancel-order-btn"
-                                onclick="cancelOrder(
-                                    '${order._id}'
-                                )">
-
+                                onclick="cancelOrder('${escapeHTML(order._id)}')">
                                 ❌ Cancel
-
                             </button>
-
                         `;
-
-                    }
-
-
-                    // CONFIRMED
-
-                    else if (
-                        order.status ===
-                        "Confirmed"
-                    ) {
-
+                    } else if (status === "Confirmed") {
                         actionButtons = `
-
                             <button
                                 class="complete-btn"
-                                onclick="completeOrder(
-                                    '${order._id}'
-                                )">
-
+                                onclick="completeOrder('${escapeHTML(order._id)}')">
                                 ✔️ Mark Completed
-
                             </button>
-
 
                             <button
                                 class="cancel-order-btn"
-                                onclick="cancelOrder(
-                                    '${order._id}'
-                                )">
-
+                                onclick="cancelOrder('${escapeHTML(order._id)}')">
                                 ❌ Cancel
-
                             </button>
-
                         `;
-
-                    }
-
-
-                    // COMPLETED
-
-                    else if (
-                        order.status ===
-                        "Completed"
-                    ) {
-
+                    } else {
                         actionButtons = `
-
-                            <span class="
-                                status
-                                status-completed
-                            ">
-
-                                ✔️ Completed
-
+                            <span class="status ${statusClass}">
+                                ${escapeHTML(status)}
                             </span>
-
                         `;
-
                     }
 
+                    let transactionsHTML = "";
 
-                    // CANCELLED
+                    if (order.blockchainTransactions?.length) {
+                        transactionsHTML = `
+                            <div class="transaction-box">
+                                <p>🔗 Blockchain Transactions</p>
 
-                    else if (
-                        order.status ===
-                        "Cancelled"
-                    ) {
-
-                        actionButtons = `
-
-                            <span class="
-                                status
-                                status-cancelled
-                            ">
-
-                                ❌ Cancelled
-
-                            </span>
-
+                                ${order.blockchainTransactions.map(tx => `
+                                    <span class="transaction-hash">
+                                        ${escapeHTML(tx.productName)}:
+                                        ${escapeHTML(tx.transactionHash)}
+                                    </span>
+                                `).join("")}
+                            </div>
                         `;
-
                     }
-
-
-                    // ==========================================
-                    // ADD ORDER CARD
-                    // ==========================================
 
                     container.innerHTML += `
-
                         <div class="order-card">
 
                             <div class="order-header">
-
                                 <div>
-
                                     <div class="order-id">
-
-                                        Order ID:
-                                        ${order._id}
-
+                                        Order ID: ${escapeHTML(order._id)}
                                     </div>
 
                                     <div class="order-date">
-
-                                        ${orderDate}
-
+                                        ${escapeHTML(orderDate)}
                                     </div>
-
                                 </div>
 
-
-                                <span class="
-                                    status
-                                    ${statusClass}
-                                ">
-
-                                    ${order.status}
-
+                                <span class="status ${statusClass}">
+                                    ${escapeHTML(status)}
                                 </span>
-
                             </div>
-
 
                             <div class="buyer-name">
-
-                                👤 Buyer:
-                                ${order.buyerName}
-
+                                👤 Buyer: ${escapeHTML(order.buyerName)}
                             </div>
-
 
                             ${productsHTML}
 
+                            ${transactionsHTML}
 
                             <div class="order-footer">
-
                                 <div class="order-total">
-
-                                    Total:
-                                    ₹${Number(
-                                        order.totalAmount
-                                    ).toFixed(2)}
-
+                                    Farmer's Product Total:
+                                    ₹${farmerSubtotal.toFixed(2)}
                                 </div>
-
 
                                 <div class="action-buttons">
-
                                     ${actionButtons}
-
                                 </div>
-
                             </div>
 
                         </div>
-
                     `;
-
                 });
 
-
-            }
-
-            catch (error) {
-
-                console.error(error);
+            } catch (error) {
+                console.error("Load Farmer Orders Error:", error);
 
                 container.innerHTML = `
-
                     <div class="empty-orders">
-
-                        <h2>
-                            Unable to Load Orders
-                        </h2>
-
-                        <p>
-                            ${error.message}
-                        </p>
-
+                        <h2>Unable to Load Orders</h2>
+                        <p>${escapeHTML(error.message)}</p>
+                        <p>Please check whether your backend server is running.</p>
                     </div>
-
                 `;
-
             }
-
         }
 
+        // =====================================
+        // UPDATE ORDER STATUS
+        // =====================================
 
-        // ==========================================
-        // CONFIRM ORDER
-        // ==========================================
+        async function updateOrderStatus(orderId, status) {
+    const endpoints = {
+        Confirmed: "confirm",
+        Completed: "complete",
+        Cancelled: "cancel"
+    };
 
-        async function confirmOrder(orderId) {
+    const endpoint = endpoints[status];
 
-            const confirmAction =
-                confirm(
-                    "Are you sure you want to confirm this order?"
-                );
+    if (!endpoint) {
+        alert("Invalid order status");
+        return;
+    }
 
-
-            if (!confirmAction) {
-                return;
-            }
-
-
-            try {
-
-                const response =
-                    await fetch(
-                        `http://localhost:5000/api/orders/confirm/${orderId}`,
-                        {
-                            method: "PUT"
-                        }
-                    );
-
-
-                const data =
-                    await response.json();
-
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        data.message ||
-                        "Unable to confirm order."
-                    );
-
+    try {
+        const response = await fetch(
+            `http://localhost:5000/api/orders/${endpoint}/${orderId}`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
                 }
-
-
-                alert(
-                    "Order confirmed successfully!"
-                );
-
-
-                loadOrders();
-
             }
+        );
 
-            catch (error) {
+        const text = await response.text();
+        let data;
 
-                console.error(error);
-
-                alert(error.message);
-
-            }
-
+        try {
+            data = JSON.parse(text);
+        } catch {
+            throw new Error("Backend returned HTML instead of JSON. Check the API route.");
         }
 
-
-        // ==========================================
-        // COMPLETE ORDER
-        // ==========================================
-
-        async function completeOrder(orderId) {
-
-            const confirmAction =
-                confirm(
-                    "Are you sure you want to mark this order as completed?"
-                );
-
-
-            if (!confirmAction) {
-                return;
-            }
-
-
-            try {
-
-                const response =
-                    await fetch(
-                        `http://localhost:5000/api/orders/complete/${orderId}`,
-                        {
-                            method: "PUT"
-                        }
-                    );
-
-
-                const data =
-                    await response.json();
-
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        data.message ||
-                        "Unable to complete order."
-                    );
-
-                }
-
-
-                alert(
-                    "Order completed successfully!"
-                );
-
-
-                loadOrders();
-
-            }
-
-            catch (error) {
-
-                console.error(error);
-
-                alert(error.message);
-
-            }
-
+        if (!response.ok) {
+            throw new Error(data.message || "Could not update order");
         }
 
-
-        // ==========================================
-        // CANCEL ORDER
-        // ==========================================
-
-        async function cancelOrder(orderId) {
-
-            const confirmAction =
-                confirm(
-                    "Are you sure you want to cancel this order?"
-                );
-
-
-            if (!confirmAction) {
-                return;
-            }
-
-
-            try {
-
-                const response =
-                    await fetch(
-                        `http://localhost:5000/api/orders/cancel/${orderId}`,
-                        {
-                            method: "PUT"
-                        }
-                    );
-
-
-                const data =
-                    await response.json();
-
-
-                if (!response.ok) {
-
-                    throw new Error(
-                        data.message ||
-                        "Unable to cancel order."
-                    );
-
-                }
-
-
-                alert(
-                    "Order cancelled successfully!"
-                );
-
-
-                loadOrders();
-
-            }
-
-            catch (error) {
-
-                console.error(error);
-
-                alert(error.message);
-
-            }
-
-        }
-
-
-        // ==========================================
-        // LOGOUT
-        // ==========================================
-
-        function logout() {
-
-            localStorage.removeItem(
-                "user"
-            );
-
-            localStorage.removeItem(
-                "cart"
-            );
-
-            window.location.href =
-                "login.html";
-
-        }
-
-
-        // ==========================================
-        // INITIAL LOAD
-        // ==========================================
-
+        alert(data.message || "Order status updated successfully!");
         loadOrders();
 
+    } catch (error) {
+        console.error("Order update error:", error);
+        alert(error.message);
+    }
+}
+
+        function confirmOrder(orderId) {
+            return updateOrderStatus(orderId, "Confirmed");
+        }
+
+        function completeOrder(orderId) {
+            return updateOrderStatus(orderId, "Completed");
+        }
+
+        function cancelOrder(orderId) {
+            return updateOrderStatus(orderId, "Cancelled");
+        }
+
+        // =====================================
+        // LOGOUT
+        // =====================================
+
+        function logout() {
+            localStorage.removeItem("user");
+            localStorage.removeItem("cart");
+            window.location.href = "login.html";
+        }
+
+        // =====================================
+        // INITIAL LOAD
+        // =====================================
+
+        loadOrders();
     </script>
 
 </body>
-
 </html>

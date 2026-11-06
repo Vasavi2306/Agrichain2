@@ -1,178 +1,98 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Login - AgriChain</title>
 
     <link rel="stylesheet" href="css/style.css">
-
 </head>
 
 <body>
 
-    <!-- Navigation Bar -->
-
     <header>
-
         <nav class="navbar">
-
-            <div class="logo">
-                🌾 AgriChain
-            </div>
+            <div class="logo">🌾 AgriChain</div>
 
             <div class="nav-links">
-
-                <a href="index.html">
-                    Home
-                </a>
-
-                <a href="products.html">
-                    Products
-                </a>
-
-                <a href="register.html">
-                    Register
-                </a>
-
+                <a href="index.html">Home</a>
+                <a href="products.html">Products</a>
+                <a href="register.html">Register</a>
             </div>
-
         </nav>
-
     </header>
 
-
-    <!-- Login Section -->
-
     <section class="auth-section">
-
         <div class="auth-container">
 
-            <h1>
-                Welcome Back
-            </h1>
+            <h1>Welcome Back</h1>
 
             <p class="auth-subtitle">
                 Login to your AgriChain account.
             </p>
 
-
-            <!-- Login Form -->
-
-            <form id="loginForm">
-
-
-                <!-- Email -->
+            <form id="loginForm" autocomplete="off">
 
                 <div class="form-group">
-
-                    <label for="loginEmail">
-                        Email Address
-                    </label>
+                    <label for="loginEmail">Email Address</label>
 
                     <input
                         type="email"
                         id="loginEmail"
                         placeholder="Enter your email"
+                        autocomplete="off"
                         required
                     >
-
                 </div>
 
-
-                <!-- Password -->
-
                 <div class="form-group">
-
-                    <label for="loginPassword">
-                        Password
-                    </label>
+                    <label for="loginPassword">Password</label>
 
                     <input
                         type="password"
                         id="loginPassword"
                         placeholder="Enter your password"
+                        autocomplete="new-password"
                         required
                     >
-
                 </div>
-
 
                 <!-- Role -->
-
                 <div class="form-group">
-
-                    <label for="loginRole">
-                        Login As
-                    </label>
+                    <label for="loginRole">Login As</label>
 
                     <select id="loginRole" required>
-
-                        <option value="">
-                            -- Select Role --
-                        </option>
-
-                        <option value="farmer">
-                            🌾 Farmer
-                        </option>
-
-                        <option value="buyer">
-                            🛒 Buyer
-                        </option>
-
+                        <option value="">Select your role</option>
+                        <option value="farmer">Farmer</option>
+                        <option value="buyer">Buyer</option>
+                        <option value="admin">Admin</option>
                     </select>
-
                 </div>
 
-
-                <!-- Login Button -->
-
-                <button
-                    type="submit"
-                    class="auth-btn"
-                >
+                <button type="submit" class="auth-btn">
                     Login
                 </button>
 
             </form>
 
-
-            <!-- Register Link -->
-
             <p class="auth-footer">
-
                 Don't have an account?
-
-                <a href="register.html">
-                    Create Account
-                </a>
-
+                <a href="register.html">Create Account</a>
             </p>
 
         </div>
-
     </section>
 
-
-    <!-- Footer -->
-
     <footer>
-
         <p>
             © 2026 AgriChain | Blockchain Agriculture Trading Platform
         </p>
-
     </footer>
-
-
-    <!-- JavaScript -->
 
     <script src="js/auth.js"></script>
 
 </body>
-
 </html>

@@ -1,0 +1,418 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AgriChain - Transaction Receipt</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f5f1;
+            padding: 30px;
+            margin: 0;
+            color: #333;
+        }
+
+        .receipt {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px #0002;
+        }
+
+        h1 {
+            color: #218838;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+            margin-top: 25px;
+        }
+
+        .detail {
+            margin: 14px 0;
+            overflow-wrap: anywhere;
+            line-height: 1.5;
+        }
+
+        .verified {
+            color: green;
+            font-weight: bold;
+        }
+
+        .pending {
+            color: #b7791f;
+            font-weight: bold;
+        }
+
+        .failed {
+            color: red;
+            font-weight: bold;
+        }
+
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        button {
+            background: #218838;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        button:hover {
+            background: #176b2c;
+        }
+
+        .secondary {
+            background: #555;
+        }
+
+        .secondary:hover {
+            background: #333;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #777;
+            font-size: 13px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .receipt {
+                padding: 20px;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .receipt {
+                box-shadow: none;
+            }
+
+            .buttons {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="receipt">
+
+        <h1>🌾 AgriChain</h1>
+
+        <p class="subtitle">
+            Blockchain Transaction Receipt
+        </p>
+
+        <h2>Order Details</h2>
+
+        <div class="detail">
+            <b>Order ID:</b>
+            <span id="orderId">Loading...</span>
+        </div>
+
+        <div class="detail">
+            <b>Product:</b>
+            <span id="productName">Loading...</span>
+        </div>
+
+        <div class="detail">
+            <b>Farmer:</b>
+            <span id="farmerName">Loading...</span>
+        </div>
+
+        <div class="detail">
+            <b>Buyer:</b>
+            <span id="buyerName">Loading...</span>
+        </div>
+
+        <div class="detail">
+            <b>Quantity:</b>
+            <span id="quantity">Loading...</span>
+        </div>
+
+        <div class="detail">
+            <b>Price:</b>
+            ₹<span id="price">Loading...</span>
+        </div>
+
+
+        <h2>Blockchain Details</h2>
+
+        <div class="detail">
+            <b>Transaction Hash:</b>
+            <span id="transactionHash">Loading...</span>
+        </div>
+
+        <div class="detail">
+            <b>Block Number:</b>
+            <span id="blockNumber">Not available</span>
+        </div>
+
+        <div class="detail">
+            <b>Verification Status:</b>
+            <span id="status" class="pending">Checking...</span>
+        </div>
+
+        <div class="buttons">
+
+            <button id="verifyButton" onclick="verifyTransaction()">
+                Verify Transaction
+            </button>
+
+            <button onclick="window.print()">
+                Print Receipt
+            </button>
+
+            <button class="secondary" onclick="goBack()">
+                Back
+            </button>
+
+        </div>
+
+        <p class="footer">
+            AgriChain - Transparent Agriculture Trading
+        </p>
+
+    </div>
+
+
+    <script>
+
+        const params = new URLSearchParams(window.location.search);
+
+        const hash = params.get("hash");
+
+        let currentTransaction = null;
+
+
+        // Update verification status
+        function setStatus(message, className) {
+
+            const statusElement = document.getElementById("status");
+
+            statusElement.textContent = message;
+
+            statusElement.className = className;
+        }
+
+
+        // Load receipt information
+        async function loadReceipt() {
+
+            if (!hash || !/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+
+                setStatus("Invalid transaction hash", "failed");
+
+                document.getElementById("transactionHash").textContent =
+                    hash || "No transaction hash provided";
+
+                return;
+            }
+
+            document.getElementById("transactionHash").textContent = hash;
+
+            try {
+
+                setStatus("Loading transaction...", "pending");
+
+                const response = await fetch(
+                    "http://localhost:5000/api/blockchain/transactions"
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || "Unable to load transactions");
+                }
+
+                if (!Array.isArray(data.transactions)) {
+                    throw new Error("Invalid transaction response from backend");
+                }
+
+                currentTransaction = data.transactions.find(
+                    item =>
+                        item.transactionHash &&
+                        item.transactionHash.toLowerCase() === hash.toLowerCase()
+                );
+
+                if (!currentTransaction) {
+
+                    setStatus("Transaction not found", "failed");
+
+                    return;
+                }
+
+
+                // Display order information
+                document.getElementById("orderId").textContent =
+                    currentTransaction.orderId || "N/A";
+
+                document.getElementById("productName").textContent =
+                    currentTransaction.productName || "N/A";
+
+                document.getElementById("farmerName").textContent =
+                    currentTransaction.farmerName || "N/A";
+
+                document.getElementById("buyerName").textContent =
+                    currentTransaction.buyerName || "N/A";
+
+                document.getElementById("quantity").textContent =
+                    currentTransaction.quantity ?? "N/A";
+
+                document.getElementById("price").textContent =
+                    currentTransaction.price ?? "N/A";
+
+
+                // Verify blockchain transaction
+                await verifyTransaction();
+
+            } catch (error) {
+
+                console.error("Receipt Error:", error);
+
+                setStatus("Unable to load receipt", "failed");
+            }
+        }
+
+
+        // Verify transaction with backend
+        async function verifyTransaction() {
+
+            if (!hash) {
+                setStatus("Transaction hash missing", "failed");
+                return;
+            }
+
+            const button = document.getElementById("verifyButton");
+
+            button.disabled = true;
+            button.textContent = "Verifying...";
+
+            setStatus("Checking blockchain...", "pending");
+
+            try {
+
+                const response = await fetch(
+                    "http://localhost:5000/api/blockchain/verify/" +
+                    encodeURIComponent(hash)
+                );
+
+                const verification = await response.json();
+
+                if (!response.ok) {
+
+                    setStatus(
+                        verification.message || "Verification failed",
+                        "failed"
+                    );
+
+                    return;
+                }
+
+                const receiptStatus = verification.receiptStatus;
+
+                const successful =
+                    verification.verified === true &&
+                    (
+                        receiptStatus === 1 ||
+                        receiptStatus === "1" ||
+                        receiptStatus === "0x1"
+                    );
+
+                if (successful) {
+
+                    setStatus("Verified on Blockchain ✓", "verified");
+
+                    document.getElementById("blockNumber").textContent =
+                        verification.blockNumber ?? "Available";
+
+                } else if (
+                    verification.status === "Pending" ||
+                    receiptStatus === null ||
+                    receiptStatus === undefined
+                ) {
+
+                    setStatus("Pending Confirmation", "pending");
+
+                } else {
+
+                    setStatus(
+                        verification.status || "Transaction Failed",
+                        "failed"
+                    );
+
+                }
+
+            } catch (error) {
+
+                console.error("Verification Error:", error);
+
+                setStatus("Unable to verify transaction", "failed");
+
+            } finally {
+
+                button.disabled = false;
+                button.textContent = "Verify Transaction";
+
+            }
+        }
+
+
+        // Back button
+        function goBack() {
+
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = "buyer.html";
+            }
+
+        }
+
+
+        // Start receipt loading
+        loadReceipt();
+
+    </script>
+
+</body>
+</html>

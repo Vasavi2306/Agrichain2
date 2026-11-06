@@ -1,196 +1,155 @@
 const express = require("express");
-const bcrypt = require("bcryptjs");
-const User = require("../models/User");
-
 const router = express.Router();
 
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
 // =========================
-// REGISTER USER
+// REGISTER FARMER / BUYER / ADMIN
 // =========================
 
 router.post("/register", async (req, res) => {
-
     try {
+        const { name, email, phone, role, password } = req.body;
 
-        const {
-            name,
-            email,
-            phone,
-            role,
-            password
-        } = req.body;
+        // Check required fields
+        if (!name || !email || !phone || !role || !password) {
+            return res.status(400).json({
+                message: "Please fill all required fields"
+            });
+        }
 
+        // Validate role
+        if (!["farmer", "buyer", "admin"].includes(role)) {
+            return res.status(400).json({
+                message: "Invalid role"
+            });
+        }
 
-        // Check if email already exists
+        // Check whether email already exists
         const existingUser = await User.findOne({
-            email: email
+            email: email.trim().toLowerCase()
         });
 
         if (existingUser) {
-
-            return res.status(400).json({
-                message: "Email already registered"
+            return res.status(409).json({
+                message: "Email already registered. Please login."
             });
-
         }
 
-
         // Hash password
-        const hashedPassword =
-            await bcrypt.hash(password, 10);
-
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create new user
-        const user = new User({
-
-            name: name,
-            email: email,
-            phone: phone,
+        const newUser = new User({
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            phone: phone.trim(),
             role: role,
             password: hashedPassword
-
         });
 
+        await newUser.save();
 
-        // Save user to MongoDB
-        await user.save();
-
-
-        res.status(201).json({
-
-            message:
-                "User registered successfully!",
-
-            user: {
-
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-
-            }
-
+        return res.status(201).json({
+            message: "Registration successful! You can now login."
         });
-
 
     } catch (error) {
+        console.log("Registration Error:", error);
 
-        console.log(error);
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "Email already registered."
+            });
+        }
 
-        res.status(500).json({
-
-            message: "Server error",
+        return res.status(500).json({
+            message: "Registration failed",
             error: error.message
-
         });
-
     }
-
 });
 
 
-
 // =========================
-// LOGIN USER
+// LOGIN FARMER / BUYER / ADMIN
 // =========================
 
 router.post("/login", async (req, res) => {
-
     try {
+        const { email, password, role } = req.body;
 
-        const {
-            email,
-            password,
-            role
-        } = req.body;
+        if (!email || !password || !role) {
+            return res.status(400).json({
+                message: "Email, password and role are required"
+            });
+        }
 
+        if (!["farmer", "buyer", "admin"].includes(role)) {
+            return res.status(400).json({
+                message: "Invalid role"
+            });
+        }
 
-        // Find user by email
         const user = await User.findOne({
-            email: email
+            email: email.trim().toLowerCase()
         });
 
-
-        // User not found
         if (!user) {
-
             return res.status(401).json({
-
-                message:
-                    "Invalid email or password"
-
+                message: "Invalid email or password"
             });
-
         }
 
-
-        // Check selected role
         if (user.role !== role) {
-
             return res.status(401).json({
-
-                message:
-                    "Invalid role selected"
-
+                message: "Selected role does not match this account"
             });
-
         }
 
+        const passwordMatch = await bcrypt.compare(
+            password,
+            user.password
+        );
 
-        // Compare password
-        const passwordMatch =
-            await bcrypt.compare(
-                password,
-                user.password
-            );
-
-
-        // Wrong password
         if (!passwordMatch) {
-
             return res.status(401).json({
-
-                message:
-                    "Invalid email or password"
-
+                message: "Invalid email or password"
             });
-
         }
 
+        const token = jwt.sign(
+            {
+                id: user._id.toString(),
+                role: user.role
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "2h"
+            }
+        );
 
-        // Login successful
-        res.status(200).json({
-
-            message:
-                "Login successful!",
-
+        return res.status(200).json({
+            message: "Login successful!",
+            token,
             user: {
-
                 id: user._id,
                 name: user.name,
                 email: user.email,
                 role: user.role
-
             }
-
         });
-
 
     } catch (error) {
+        console.log("Login Error:", error);
 
-        console.log(error);
-
-        res.status(500).json({
-
-            message: "Server error",
+        return res.status(500).json({
+            message: "Login failed",
             error: error.message
-
         });
-
     }
-
 });
-
 
 module.exports = router;

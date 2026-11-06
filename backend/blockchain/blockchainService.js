@@ -1,9 +1,9 @@
+
 const { ethers } = require("ethers");
 const { provider, abi } = require("./connection");
 
 const contractAddress = process.env.CONTRACT_ADDRESS;
 
-// Connect to the local Hardhat account
 const contract = new ethers.Contract(
     contractAddress,
     abi,
@@ -11,22 +11,18 @@ const contract = new ethers.Contract(
 );
 
 
-// =====================================
-// GET TRANSACTION COUNT
-// =====================================
-
+// Get total blockchain transaction count
 async function getTransactionCount() {
+
     const count = await contract.getTransactionCount();
 
     return Number(count);
 }
 
 
-// =====================================
-// GET BLOCKCHAIN TRANSACTION
-// =====================================
-
+// Get individual blockchain transaction
 async function getTransaction(index) {
+
     const transaction = await contract.getTransaction(index);
 
     return {
@@ -41,10 +37,7 @@ async function getTransaction(index) {
 }
 
 
-// =====================================
-// RECORD TRANSACTION
-// =====================================
-
+// Record a new transaction on blockchain
 async function recordTransaction(
     orderId,
     productName,
@@ -53,20 +46,14 @@ async function recordTransaction(
     quantity,
     price
 ) {
-    const accounts = await provider.send(
-        "eth_accounts",
-        []
-    );
+
+    const accounts = await provider.send("eth_accounts", []);
 
     if (!accounts || accounts.length === 0) {
-        throw new Error(
-            "No Hardhat accounts available."
-        );
+        throw new Error("No Hardhat accounts available.");
     }
 
-    const signer = await provider.getSigner(
-        accounts[0]
-    );
+    const signer = await provider.getSigner(accounts[0]);
 
     const writableContract = new ethers.Contract(
         contractAddress,
@@ -83,19 +70,65 @@ async function recordTransaction(
         price
     );
 
-    await tx.wait();
+    const receipt = await tx.wait();
+
+    if (receipt.status !== 1) {
+        throw new Error("Blockchain transaction execution failed.");
+    }
 
     return tx.hash;
 }
 
 
-// =====================================
-// EXPORT
-// =====================================
+// Verify transaction using actual blockchain receipt
+async function verifyTransaction(transactionHash) {
+
+    const transaction = await provider.getTransaction(transactionHash);
+
+    if (!transaction) {
+
+        return {
+            status: "Not Found",
+            message: "Transaction does not exist on blockchain."
+        };
+    }
+
+    const receipt = await provider.getTransactionReceipt(transactionHash);
+
+    if (!receipt) {
+
+        return {
+            status: "Pending",
+            transactionHash,
+            message: "Transaction is waiting to be mined."
+        };
+    }
+
+    return {
+
+        status: receipt.status === 1 ? "Verified" : "Failed",
+
+        transactionHash: receipt.hash,
+
+        blockNumber: receipt.blockNumber,
+
+        blockHash: receipt.blockHash,
+
+        receiptStatus: receipt.status,
+
+        from: receipt.from,
+
+        to: receipt.to,
+
+        gasUsed: receipt.gasUsed.toString()
+    };
+}
+
 
 module.exports = {
     contract,
     getTransactionCount,
     getTransaction,
-    recordTransaction
+    recordTransaction,
+    verifyTransaction
 };
